@@ -33,15 +33,16 @@ int main() {
 	initBoxes(boxes, 10, boxSize, circleBounds);
 
 	// Bar for the bottom of the screen
-	sf::Vector2f barSize(200, 20);
+	sf::Vector2f barSize(250, 20);
 	sf::RectangleShape bar(barSize);
 	bar.setFillColor(sf::Color::White);
 	bar.setPosition((window.getSize().x - barSize.x) / 2.0,
-					(window.getSize().y - barSize.y) / 2.0);
+					(window.getSize().y * 1.85 - barSize.y) / 2.0);
 
 	// Create game over text
 	sf::Text gameOver;
 	sf::Font font;
+	// TODO make this cross-platform later on
 	if (!font.loadFromFile("/usr/share/fonts/noto/NotoSans-Bold.ttf")) {
 		// Error handling if font doesn't load
 		printf("error for font\n");
@@ -168,7 +169,6 @@ void eliminateBoxes(std::vector<sf::RectangleShape> &boxes, sf::FloatRect circle
 		}
 	}
 	boxes = retVal;
-	// return boxes;
 }
 
 bool isOverlapping(const sf::FloatRect &rect1, const sf::FloatRect &rect2) {
