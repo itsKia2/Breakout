@@ -1,0 +1,15 @@
+# .clang-format file
+Language: Cpp
+BasedOnStyle: Google
+IndentWidth: 4
+UseTab: Always
+TabWidth: 4
+ContinuationIndentWidth: 4
+IndentCaseLabels: false
+BreakBeforeBraces: Attach
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+ColumnLimit: 0  # Disable column limit
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: false
