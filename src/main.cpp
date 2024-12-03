@@ -10,28 +10,34 @@
 void gameOverText(sf::Text &gameOver, sf::Font &font);
 std::vector<sf::RectangleShape> initBoxes(std::vector<sf::RectangleShape> &boxes, int boxNum, sf::Vector2f boxSize, sf::FloatRect circleBounds);
 void moveCircle(sf::CircleShape &circle, sf::Vector2u windowSize);
+void eliminateBoxes(std::vector<sf::RectangleShape> &boxes, sf::FloatRect circleBounds);
 bool isOverlapping(const sf::FloatRect &rect1, const sf::FloatRect &rect2);
 
-int main(int argc, char *argv[]) {
+int main() {
 	printf("Hello World\n");
 
-	sf::RenderWindow window(sf::VideoMode(1100, 800), "My SFML Window");
+	sf::RenderWindow window(sf::VideoMode(1100, 800), "Breakout");
 	bool gameChecker = false;
 
 	// Circle
 	sf::CircleShape circle(50.f);
-
 	circle.setFillColor(sf::Color::Green);
-	circle.setPosition(0, 0);
+	circle.setPosition((window.getSize().x - circle.getRadius() * 2) / 2.0,
+					   (window.getSize().y - circle.getRadius() * 2) / 2.0);
 	sf::FloatRect circleBounds = circle.getGlobalBounds();
 
 	// Vector of boxes
 	std::vector<sf::RectangleShape> boxes;
-	int boxCount = 10;
 	sf::Vector2f boxSize(100, 100);
-
 	// Initialize all the boxes
 	initBoxes(boxes, 10, boxSize, circleBounds);
+
+	// Bar for the bottom of the screen
+	sf::Vector2f barSize(200, 20);
+	sf::RectangleShape bar(barSize);
+	bar.setFillColor(sf::Color::White);
+	bar.setPosition((window.getSize().x - barSize.x) / 2.0,
+					(window.getSize().y - barSize.y) / 2.0);
 
 	// Create game over text
 	sf::Text gameOver;
@@ -44,6 +50,7 @@ int main(int argc, char *argv[]) {
 		window.getSize().x / 2.0f, window.getSize().y / 2.0f));
 	gameOverText(gameOver, font);
 
+	// This is the main loop where our program happens
 	while (window.isOpen()) {
 		sf::Event event;
 		while (window.pollEvent(event)) {
@@ -51,7 +58,7 @@ int main(int argc, char *argv[]) {
 				window.close();
 			}
 		}
-		// Movement logic with collision detection
+		// Circle boundaries so we can check position relative to other objects
 		sf::FloatRect circleBounds = circle.getGlobalBounds();
 
 		// Keyboard input which moves the circle
@@ -62,24 +69,18 @@ int main(int argc, char *argv[]) {
 			window.draw(gameOver);
 		} else {
 			window.draw(circle);
+			window.draw(bar);
 			for (const auto &box : boxes) {
 				window.draw(box);  // Draw all boxes
 			}
 		}
 		window.display();
 
-		std::vector<sf::RectangleShape> box2;
-		for (const auto &box : boxes) {
-			if (circleBounds.intersects(box.getGlobalBounds())) {
-				printf("box has been hit!\n");
-			} else {
-				box2.push_back(box);
-			}
-		}
-		if (box2.empty()) {
+		// Passes in boxes by reference
+		eliminateBoxes(boxes, circleBounds);
+		if (boxes.empty()) {
 			gameChecker = true;
 		}
-		boxes = box2;
 	}
 
 	return 0;
@@ -106,8 +107,8 @@ std::vector<sf::RectangleShape> initBoxes(std::vector<sf::RectangleShape> &boxes
 		box.setFillColor(sf::Color::Red);
 
 		// Generate random position
-		float x = std::rand() % (800 - static_cast<int>(boxSize.x));
-		float y = std::rand() % (600 - static_cast<int>(boxSize.y));
+		float x = std::rand() % (1100 - static_cast<int>(boxSize.x));
+		float y = std::rand() % (400 - static_cast<int>(boxSize.y));
 		box.setPosition(x, y);
 
 		// Check for overlap with existing boxes
@@ -153,6 +154,21 @@ void moveCircle(sf::CircleShape &circle, sf::Vector2u windowSize) {
 			circle.move(0, 0.1);
 		}
 	}
+}
+
+void eliminateBoxes(std::vector<sf::RectangleShape> &boxes, sf::FloatRect circleBounds) {
+	// Check each box with the circle to see if they intersect
+	std::vector<sf::RectangleShape> retVal;
+	for (const auto &box : boxes) {
+		if (circleBounds.intersects(box.getGlobalBounds())) {
+			printf("box has been hit!\n");
+		} else {
+			// This effectively removes the box that intersected with the circle
+			retVal.push_back(box);
+		}
+	}
+	boxes = retVal;
+	// return boxes;
 }
 
 bool isOverlapping(const sf::FloatRect &rect1, const sf::FloatRect &rect2) {
