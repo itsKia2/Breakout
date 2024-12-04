@@ -10,6 +10,8 @@
 void gameOverText(sf::Text &gameOver, sf::Font &font);
 std::vector<sf::RectangleShape> initBoxes(std::vector<sf::RectangleShape> &boxes, int boxNum, sf::Vector2f boxSize, sf::FloatRect circleBounds);
 void moveCircle(sf::CircleShape &circle, sf::Vector2u windowSize);
+void moveBar(sf::RectangleShape &bar, sf::Vector2i mousePosition, sf::Vector2u windowSize);
+void mouseBarEvent(sf::CircleShape &circle, sf::RectangleShape &bar);
 void eliminateBoxes(std::vector<sf::RectangleShape> &boxes, sf::FloatRect circleBounds);
 bool isOverlapping(const sf::FloatRect &rect1, const sf::FloatRect &rect2);
 
@@ -64,6 +66,10 @@ int main() {
 
 		// Keyboard input which moves the circle
 		moveCircle(circle, window.getSize());
+		mouseBarEvent(circle, bar);
+
+		// Mouse input which moves bar horizontally
+		moveBar(bar, sf::Mouse::getPosition(window), window.getSize());
 
 		window.clear();
 		if (gameChecker) {
@@ -155,6 +161,28 @@ void moveCircle(sf::CircleShape &circle, sf::Vector2u windowSize) {
 			circle.move(0, 0.1);
 		}
 	}
+}
+
+void mouseBarEvent(sf::CircleShape &circle, sf::RectangleShape &bar) {
+	sf::Vector2f circleVelocity(5.f, 5.f);
+	// Prevent the circle from going below the bar
+	float circleBottom = circle.getPosition().y + circle.getRadius() * 2;  // Bottom of the circle
+	float barTop = bar.getPosition().y;									   // Top of the bar
+
+	if (circleBottom >= barTop) {
+		// If the circle overlaps or goes below the bar, reset its position
+		circle.setPosition(circle.getPosition().x, barTop - circle.getRadius() * 2);
+
+		// Optionally reverse the vertical velocity to bounce off the bar
+		circleVelocity.y = -circleVelocity.y;
+	}
+}
+
+void moveBar(sf::RectangleShape &bar, sf::Vector2i mousePosition, sf::Vector2u windowSize) {
+	float barX = mousePosition.x - bar.getSize().x / 2.0f;									   // Center the bar on the mouse's X position
+	barX = std::max(0.f, std::min(barX, static_cast<float>(windowSize.x - bar.getSize().x)));  // Clamp within window width
+
+	bar.setPosition(barX, bar.getPosition().y);	 // Update the bar's position
 }
 
 void eliminateBoxes(std::vector<sf::RectangleShape> &boxes, sf::FloatRect circleBounds) {
