@@ -11,7 +11,6 @@ void gameOverText(sf::Text &gameOver, sf::Font &font);
 std::vector<sf::RectangleShape> initBoxes(std::vector<sf::RectangleShape> &boxes, int boxNum, sf::Vector2f boxSize, sf::FloatRect circleBounds);
 void moveCircle(sf::CircleShape &circle, sf::Vector2u windowSize);
 void moveBar(sf::RectangleShape &bar, sf::Vector2i mousePosition, sf::Vector2u windowSize);
-void mouseBarEvent(sf::CircleShape &circle, sf::RectangleShape &bar);
 void eliminateBoxes(std::vector<sf::RectangleShape> &boxes, sf::FloatRect circleBounds);
 bool isOverlapping(const sf::FloatRect &rect1, const sf::FloatRect &rect2);
 
@@ -42,6 +41,14 @@ int main() {
 	bar.setPosition((window.getSize().x - barSize.x) / 2.0,
 					(window.getSize().y * 1.85 - barSize.y) / 2.0);
 
+	// Positions for circle and bar
+	float circleBottom = circle.getPosition().y + circle.getRadius() * 2;  // Bottom of the circle
+	float barTop = bar.getPosition().y;									   // Top of the bar
+	float circleLeft = circle.getPosition().x;							   // Left side of the circle
+	float circleRight = circle.getPosition().x + circle.getRadius() * 2;   // Right side of the circle
+	float barLeft = bar.getPosition().x;								   // Left side of the bar
+	float barRight = bar.getPosition().x + bar.getSize().x;				   // Right side of the bar
+
 	// Create game over text
 	sf::Text gameOver;
 	sf::Font font;
@@ -61,9 +68,21 @@ int main() {
 			if (event.type == sf::Event::Closed) {
 				window.close();
 			}
+
+			// Check for restart input if the game is over
+			if (gameChecker && event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::R) {
+				gameChecker = false;
+				circle.setPosition(window.getSize().x / 2.0f - circle.getRadius(), window.getSize().y / 2.0f);
+				circleVelocity = sf::Vector2f(0.1, -0.1);
+				bar.setPosition(window.getSize().x / 2.0f - bar.getSize().x / 2.0f, window.getSize().y - 50.f);
+				initBoxes(boxes, 10, boxSize, circleBounds);
+				// window.close();
+				// sf::RenderWindow window(sf::VideoMode(1100, 800), "Breakout");
+				gameChecker = false;
+			}
 		}
 		// Circle boundaries so we can check position relative to other objects
-		sf::FloatRect circleBounds = circle.getGlobalBounds();
+		circleBounds = circle.getGlobalBounds();
 
 		// Keyboard input which moves the circle
 		// moveCircle(circle, window.getSize());
@@ -78,12 +97,12 @@ int main() {
 		}
 
 		// Calculate the bottom of the circle and the top of the bar
-		float circleBottom = circle.getPosition().y + circle.getRadius() * 2;  // Bottom of the circle
-		float barTop = bar.getPosition().y;									   // Top of the bar
-		float circleLeft = circle.getPosition().x;							   // Left side of the circle
-		float circleRight = circle.getPosition().x + circle.getRadius() * 2;   // Right side of the circle
-		float barLeft = bar.getPosition().x;								   // Left side of the bar
-		float barRight = bar.getPosition().x + bar.getSize().x;				   // Right side of the bar
+		circleBottom = circle.getPosition().y + circle.getRadius() * 2;	 // Bottom of the circle
+		barTop = bar.getPosition().y;									 // Top of the bar
+		circleLeft = circle.getPosition().x;							 // Left side of the circle
+		circleRight = circle.getPosition().x + circle.getRadius() * 2;	 // Right side of the circle
+		barLeft = bar.getPosition().x;									 // Left side of the bar
+		barRight = bar.getPosition().x + bar.getSize().x;				 // Right side of the bar
 
 		// Check if the circle hits the top of the bar AND is horizontally within the bar's bounds
 		if (circleBottom >= barTop &&
@@ -107,14 +126,7 @@ int main() {
 		window.clear();
 		if (gameChecker) {
 			window.draw(gameOver);
-			printf("time to game restart\n");
-			circle.setPosition(window.getSize().x / 2.0f - circle.getRadius(), window.getSize().y / 2.0f);
-			circleVelocity = sf::Vector2f(0.1, -0.1);
-			bar.setPosition(window.getSize().x / 2.0f - bar.getSize().x / 2.0f, window.getSize().y - 50.f);
-			initBoxes(boxes, 10, boxSize, circleBounds);
-			// window.close();
-			sf::RenderWindow window(sf::VideoMode(1100, 800), "Breakout");
-			gameChecker = false;
+			// printf("time to game restart\n");
 		} else {
 			window.draw(circle);
 			window.draw(bar);
@@ -136,7 +148,7 @@ int main() {
 
 void gameOverText(sf::Text &gameOverText, sf::Font &font) {
 	gameOverText.setFont(font);
-	gameOverText.setString("GAME OVER");
+	gameOverText.setString("GAME OVER - Press R to restart game");
 	gameOverText.setCharacterSize(50);
 	gameOverText.setFillColor(sf::Color::Red);
 
@@ -201,21 +213,6 @@ void moveCircle(sf::CircleShape &circle, sf::Vector2u windowSize) {
 			windowSize.y) {
 			circle.move(0, 0.1);
 		}
-	}
-}
-
-void mouseBarEvent(sf::CircleShape &circle, sf::RectangleShape &bar) {
-	sf::Vector2f circleVelocity(5.f, 5.f);
-	// Prevent the circle from going below the bar
-	float circleBottom = circle.getPosition().y + circle.getRadius() * 2;  // Bottom of the circle
-	float barTop = bar.getPosition().y;									   // Top of the bar
-
-	if (circleBottom >= barTop) {
-		// If the circle overlaps or goes below the bar, reset its position
-		circle.setPosition(circle.getPosition().x, barTop - circle.getRadius() * 2);
-
-		// Optionally reverse the vertical velocity to bounce off the bar
-		circleVelocity.y = -circleVelocity.y;
 	}
 }
 
