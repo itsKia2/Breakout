@@ -5,11 +5,10 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/VideoMode.hpp>
 #include <cstdio>
-#include <ctime>
+#include <random>
 
 void gameOverText(sf::Text &gameOver, sf::Font &font);
 std::vector<sf::RectangleShape> initBoxes(std::vector<sf::RectangleShape> &boxes, int boxNum, sf::Vector2f boxSize, sf::FloatRect circleBounds);
-void moveCircle(sf::CircleShape &circle, sf::Vector2u windowSize);
 void moveBar(sf::RectangleShape &bar, sf::Vector2i mousePosition, sf::Vector2u windowSize);
 void eliminateBoxes(std::vector<sf::RectangleShape> &boxes, sf::FloatRect circleBounds);
 bool isOverlapping(const sf::FloatRect &rect1, const sf::FloatRect &rect2);
@@ -71,63 +70,60 @@ int main() {
 
 			// Check for restart input if the game is over
 			if (gameChecker && event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::R) {
+				// this is the game over bool variable
 				gameChecker = false;
+				// reset circle, bar, and boxes positions
 				circle.setPosition(window.getSize().x / 2.0f - circle.getRadius(), window.getSize().y / 2.0f);
 				circleVelocity = sf::Vector2f(0.1, -0.1);
 				bar.setPosition(window.getSize().x / 2.0f - bar.getSize().x / 2.0f, window.getSize().y - 50.f);
 				initBoxes(boxes, 10, boxSize, circleBounds);
 				// window.close();
 				// sf::RenderWindow window(sf::VideoMode(1100, 800), "Breakout");
-				gameChecker = false;
 			}
 		}
-		// Circle boundaries so we can check position relative to other objects
-		circleBounds = circle.getGlobalBounds();
-
-		// Keyboard input which moves the circle
-		// moveCircle(circle, window.getSize());
-		// mouseBarEvent(circle, bar);
-
-		// Automated circle movement
-		circle.move(circleVelocity);
-
-		// Reverse direction if the ball hits the left or right wall
-		if (circle.getPosition().x <= 0 || circle.getPosition().x + circle.getRadius() * 2 >= window.getSize().x) {
-			circleVelocity.x = -circleVelocity.x;  // Reverse horizontal direction
-		}
-
-		// Calculate the bottom of the circle and the top of the bar
-		circleBottom = circle.getPosition().y + circle.getRadius() * 2;	 // Bottom of the circle
-		barTop = bar.getPosition().y;									 // Top of the bar
-		circleLeft = circle.getPosition().x;							 // Left side of the circle
-		circleRight = circle.getPosition().x + circle.getRadius() * 2;	 // Right side of the circle
-		barLeft = bar.getPosition().x;									 // Left side of the bar
-		barRight = bar.getPosition().x + bar.getSize().x;				 // Right side of the bar
-
-		// Check if the circle hits the top of the bar AND is horizontally within the bar's bounds
-		if (circleBottom >= barTop &&
-			circleRight >= barLeft &&  // Circle overlaps bar horizontally
-			circleLeft <= barRight) {
-			circleVelocity.y = -circleVelocity.y;  // Reverse vertical direction
-		}
-
-		// Reverse direction if the ball hits the top wall
-		if (circle.getPosition().y <= 0) {
-			circleVelocity.y = -circleVelocity.y;  // Reverse vertical direction
-		}
-
-		if (circleBottom > window.getSize().y) {
-			gameChecker = true;
-		}
-
-		// Mouse input which moves bar horizontally
-		moveBar(bar, sf::Mouse::getPosition(window), window.getSize());
 
 		window.clear();
 		if (gameChecker) {
 			window.draw(gameOver);
 			// printf("time to game restart\n");
 		} else {
+			// Circle boundaries so we can check position relative to other objects
+			circleBounds = circle.getGlobalBounds();
+
+			// Automated circle movement
+			circle.move(circleVelocity);
+
+			// Reverse direction if the ball hits the left or right wall
+			if (circle.getPosition().x <= 0 || circle.getPosition().x + circle.getRadius() * 2 >= window.getSize().x) {
+				circleVelocity.x = -circleVelocity.x;  // Reverse horizontal direction
+			}
+
+			// Calculate the bottom of the circle and the top of the bar
+			circleBottom = circle.getPosition().y + circle.getRadius() * 2;	 // Bottom of the circle
+			barTop = bar.getPosition().y;									 // Top of the bar
+			circleLeft = circle.getPosition().x;							 // Left side of the circle
+			circleRight = circle.getPosition().x + circle.getRadius() * 2;	 // Right side of the circle
+			barLeft = bar.getPosition().x;									 // Left side of the bar
+			barRight = bar.getPosition().x + bar.getSize().x;				 // Right side of the bar
+
+			// Check if the circle hits the top of the bar AND is horizontally within the bar's bounds
+			if (circleBottom >= barTop &&
+				circleRight >= barLeft &&  // Circle overlaps bar horizontally
+				circleLeft <= barRight) {
+				circleVelocity.y = -circleVelocity.y;  // Reverse vertical direction
+			}
+
+			// Reverse direction if the ball hits the top wall
+			if (circle.getPosition().y <= 0) {
+				circleVelocity.y = -circleVelocity.y;  // Reverse vertical direction
+			}
+
+			if (circleBottom > window.getSize().y) {
+				gameChecker = true;
+			}
+
+			// Mouse input which moves bar horizontally
+			moveBar(bar, sf::Mouse::getPosition(window), window.getSize());
 			window.draw(circle);
 			window.draw(bar);
 			for (const auto &box : boxes) {
@@ -159,16 +155,23 @@ void gameOverText(sf::Text &gameOverText, sf::Font &font) {
 						   textBounds.top + textBounds.height / 2.0f);
 }
 
+// TODO return int ; do max retries counter and if it doesnt work in max retries then just run initBoxes() above again
 std::vector<sf::RectangleShape> initBoxes(std::vector<sf::RectangleShape> &boxes, int boxNum, sf::Vector2f boxSize, sf::FloatRect circleBounds) {
+	boxes.clear();
+
+	std::random_device rd;														   // Non-deterministic random device
+	std::mt19937 gen(rd());														   // Seed the Mersenne Twister with the random device
+	std::uniform_int_distribution<> xDist(0, 1100 - static_cast<int>(boxSize.x));  // Distribution for x position
+	std::uniform_int_distribution<> yDist(0, 400 - static_cast<int>(boxSize.y));   // Distribution for y position
+
 	// Random position of box
-	std::srand(static_cast<unsigned int>(std::time(nullptr)));
 	while (boxes.size() < boxNum) {
 		sf::RectangleShape box(boxSize);
 		box.setFillColor(sf::Color::Red);
 
 		// Generate random position
-		float x = std::rand() % (1100 - static_cast<int>(boxSize.x));
-		float y = std::rand() % (400 - static_cast<int>(boxSize.y));
+		float x = xDist(gen);
+		float y = yDist(gen);
 		box.setPosition(x, y);
 
 		// Check for overlap with existing boxes
@@ -188,32 +191,6 @@ std::vector<sf::RectangleShape> initBoxes(std::vector<sf::RectangleShape> &boxes
 		}
 	}
 	return boxes;
-}
-
-void moveCircle(sf::CircleShape &circle, sf::Vector2u windowSize) {
-	// Check for keyboard input and move the circle
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-		if (circle.getPosition().x > 0) {
-			circle.move(-0.1, 0);
-		}
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-		if (circle.getPosition().x + circle.getRadius() * 2 <
-			windowSize.x) {
-			circle.move(0.1, 0);
-		}
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-		if (circle.getPosition().y > 0) {
-			circle.move(0, -0.1);
-		}
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-		if (circle.getPosition().y + circle.getRadius() * 2 <
-			windowSize.y) {
-			circle.move(0, 0.1);
-		}
-	}
 }
 
 void moveBar(sf::RectangleShape &bar, sf::Vector2i mousePosition, sf::Vector2u windowSize) {
