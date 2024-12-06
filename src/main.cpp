@@ -27,6 +27,7 @@ int main() {
 	circle.setPosition((window.getSize().x - circle.getRadius() * 2) / 2.0,
 					   (window.getSize().y - circle.getRadius() * 2) / 2.0);
 	sf::FloatRect circleBounds = circle.getGlobalBounds();
+	sf::Vector2f circleVelocity(0.1, -0.1);	 // Moves right and upward
 
 	// Vector of boxes
 	std::vector<sf::RectangleShape> boxes;
@@ -65,8 +66,40 @@ int main() {
 		sf::FloatRect circleBounds = circle.getGlobalBounds();
 
 		// Keyboard input which moves the circle
-		moveCircle(circle, window.getSize());
-		mouseBarEvent(circle, bar);
+		// moveCircle(circle, window.getSize());
+		// mouseBarEvent(circle, bar);
+
+		// Automated circle movement
+		circle.move(circleVelocity);
+
+		// Reverse direction if the ball hits the left or right wall
+		if (circle.getPosition().x <= 0 || circle.getPosition().x + circle.getRadius() * 2 >= window.getSize().x) {
+			circleVelocity.x = -circleVelocity.x;  // Reverse horizontal direction
+		}
+
+		// Calculate the bottom of the circle and the top of the bar
+		float circleBottom = circle.getPosition().y + circle.getRadius() * 2;  // Bottom of the circle
+		float barTop = bar.getPosition().y;									   // Top of the bar
+		float circleLeft = circle.getPosition().x;							   // Left side of the circle
+		float circleRight = circle.getPosition().x + circle.getRadius() * 2;   // Right side of the circle
+		float barLeft = bar.getPosition().x;								   // Left side of the bar
+		float barRight = bar.getPosition().x + bar.getSize().x;				   // Right side of the bar
+
+		// Check if the circle hits the top of the bar AND is horizontally within the bar's bounds
+		if (circleBottom >= barTop &&
+			circleRight >= barLeft &&  // Circle overlaps bar horizontally
+			circleLeft <= barRight) {
+			circleVelocity.y = -circleVelocity.y;  // Reverse vertical direction
+		}
+
+		// Reverse direction if the ball hits the top wall
+		if (circle.getPosition().y <= 0) {
+			circleVelocity.y = -circleVelocity.y;  // Reverse vertical direction
+		}
+
+		if (circleBottom > window.getSize().y) {
+			gameChecker = true;
+		}
 
 		// Mouse input which moves bar horizontally
 		moveBar(bar, sf::Mouse::getPosition(window), window.getSize());
@@ -74,6 +107,14 @@ int main() {
 		window.clear();
 		if (gameChecker) {
 			window.draw(gameOver);
+			printf("time to game restart\n");
+			circle.setPosition(window.getSize().x / 2.0f - circle.getRadius(), window.getSize().y / 2.0f);
+			circleVelocity = sf::Vector2f(0.1, -0.1);
+			bar.setPosition(window.getSize().x / 2.0f - bar.getSize().x / 2.0f, window.getSize().y - 50.f);
+			initBoxes(boxes, 10, boxSize, circleBounds);
+			// window.close();
+			sf::RenderWindow window(sf::VideoMode(1100, 800), "Breakout");
+			gameChecker = false;
 		} else {
 			window.draw(circle);
 			window.draw(bar);
