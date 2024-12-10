@@ -25,7 +25,7 @@ int main() {
 	circle.setPosition((window.getSize().x - circle.getRadius() * 2) / 2.0,
 					   (window.getSize().y - circle.getRadius() * 2) / 2.0);
 	sf::FloatRect circleBounds = circle.getGlobalBounds();
-	sf::Vector2f circleVelocity(0.1, -0.1);	 // Moves right and upward
+	sf::Vector2f circleVelocity(0.1f, -0.1f);
 
 	// Vector of boxes
 	std::vector<sf::RectangleShape> boxes;
@@ -84,15 +84,12 @@ int main() {
 					initBoxFlag = initBoxes(boxes, 10, boxSize, circleBounds);
 				}
 				initBoxFlag = false;
-				// window.close();
-				// sf::RenderWindow window(sf::VideoMode(1100, 800), "Breakout");
 			}
 		}
 
 		window.clear();
 		if (gameChecker) {
 			window.draw(gameOver);
-			// printf("time to game restart\n");
 		} else {
 			// Circle boundaries so we can check position relative to other objects
 			circleBounds = circle.getGlobalBounds();
@@ -102,27 +99,47 @@ int main() {
 
 			// Reverse direction if the ball hits the left or right wall
 			if (circle.getPosition().x <= 0 || circle.getPosition().x + circle.getRadius() * 2 >= window.getSize().x) {
-				circleVelocity.x = -circleVelocity.x;  // Reverse horizontal direction
+				circleVelocity.x = -circleVelocity.x;
+			}
+			// Reverse direction if the ball hits the top wall
+			if (circle.getPosition().y <= 0) {
+				circleVelocity.y = -circleVelocity.y;
 			}
 
-			// Calculate the bottom of the circle and the top of the bar
-			circleBottom = circle.getPosition().y + circle.getRadius() * 2;	 // Bottom of the circle
-			barTop = bar.getPosition().y;									 // Top of the bar
-			circleLeft = circle.getPosition().x;							 // Left side of the circle
-			circleRight = circle.getPosition().x + circle.getRadius() * 2;	 // Right side of the circle
-			barLeft = bar.getPosition().x;									 // Left side of the bar
-			barRight = bar.getPosition().x + bar.getSize().x;				 // Right side of the bar
+			// Calculate key components locations
+			circleBottom = circle.getPosition().y + circle.getRadius() * 2;
+			barTop = bar.getPosition().y;
+			circleLeft = circle.getPosition().x;
+			circleRight = circle.getPosition().x + circle.getRadius() * 2;
+			barLeft = bar.getPosition().x;
+			barRight = bar.getPosition().x + bar.getSize().x;
 
 			// Check if the circle hits the top of the bar AND is horizontally within the bar's bounds
 			if (circleBottom >= barTop &&
-				circleRight >= barLeft &&  // Circle overlaps bar horizontally
+				circleRight >= barLeft &&
 				circleLeft <= barRight) {
-				circleVelocity.y = -circleVelocity.y;  // Reverse vertical direction
-			}
+				// Calculate the collision point relative to the bar's width
+				float collisionPoint = (circle.getPosition().x + circle.getRadius()) - barLeft;
 
-			// Reverse direction if the ball hits the top wall
-			if (circle.getPosition().y <= 0) {
-				circleVelocity.y = -circleVelocity.y;  // Reverse vertical direction
+				float relativePosition = (collisionPoint / bar.getSize().x) - 0.5f;	 // Range: -0.5 to 0.5
+				circleVelocity.x = relativePosition * 0.15f;						 // Adjust this factor to limit horizontal speed
+
+				// Clamp horizontal velocity to prevent extreme angles
+				float maxHorizontalSpeed = 0.12f;  // Maximum allowed horizontal speed
+				if (circleVelocity.x > maxHorizontalSpeed) {
+					circleVelocity.x = maxHorizontalSpeed;
+				} else if (circleVelocity.x < -maxHorizontalSpeed) {
+					circleVelocity.x = -maxHorizontalSpeed;
+				}
+
+				// Reverse the vertical direction of the ball
+				circleVelocity.y = -std::abs(circleVelocity.y);	 // Ensure it moves upward after hitting the bar
+
+				// Normalize the velocity to maintain a constant speed
+				float speed = std::sqrt(circleVelocity.x * circleVelocity.x + circleVelocity.y * circleVelocity.y);
+				float desiredSpeed = 0.1f;	// Desired constant speed
+				circleVelocity.x = (circleVelocity.x / speed) * desiredSpeed;
+				circleVelocity.y = (circleVelocity.y / speed) * desiredSpeed;
 			}
 
 			if (circleBottom > window.getSize().y) {
@@ -162,17 +179,16 @@ void gameOverText(sf::Text &gameOverText, sf::Font &font) {
 						   textBounds.top + textBounds.height / 2.0f);
 }
 
-// TODO return int ; do max retries counter and if it doesnt work in max retries then just run initBoxes() above again
 int initBoxes(std::vector<sf::RectangleShape> &boxes, int boxNum, sf::Vector2f boxSize, sf::FloatRect circleBounds) {
 	boxes.clear();
 
 	int counter = 0;
 	int finishedFlag = false;
 
-	std::random_device rd;														   // Non-deterministic random device
-	std::mt19937 gen(rd());														   // Seed the Mersenne Twister with the random device
-	std::uniform_int_distribution<> xDist(0, 1100 - static_cast<int>(boxSize.x));  // Distribution for x position
-	std::uniform_int_distribution<> yDist(0, 400 - static_cast<int>(boxSize.y));   // Distribution for y position
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> xDist(0, 1100 - static_cast<int>(boxSize.x));
+	std::uniform_int_distribution<> yDist(0, 400 - static_cast<int>(boxSize.y));
 
 	// Random position of box
 	while (boxes.size() < boxNum && counter < 100) {
@@ -209,8 +225,8 @@ int initBoxes(std::vector<sf::RectangleShape> &boxes, int boxNum, sf::Vector2f b
 }
 
 void moveBar(sf::RectangleShape &bar, sf::Vector2i mousePosition, sf::Vector2u windowSize) {
-	float barX = mousePosition.x - bar.getSize().x / 2.0f;									   // Center the bar on the mouse's X position
-	barX = std::max(0.f, std::min(barX, static_cast<float>(windowSize.x - bar.getSize().x)));  // Clamp within window width
+	float barX = mousePosition.x - bar.getSize().x / 2.0f;
+	barX = std::max(0.f, std::min(barX, static_cast<float>(windowSize.x - bar.getSize().x)));
 
 	bar.setPosition(barX, bar.getPosition().y);	 // Update the bar's position
 }
