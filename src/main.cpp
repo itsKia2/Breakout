@@ -8,7 +8,7 @@
 #include <random>
 
 void gameOverText(sf::Text &gameOver, sf::Font &font);
-std::vector<sf::RectangleShape> initBoxes(std::vector<sf::RectangleShape> &boxes, int boxNum, sf::Vector2f boxSize, sf::FloatRect circleBounds);
+int initBoxes(std::vector<sf::RectangleShape> &boxes, int boxNum, sf::Vector2f boxSize, sf::FloatRect circleBounds);
 void moveBar(sf::RectangleShape &bar, sf::Vector2i mousePosition, sf::Vector2u windowSize);
 void eliminateBoxes(std::vector<sf::RectangleShape> &boxes, sf::FloatRect circleBounds);
 bool isOverlapping(const sf::FloatRect &rect1, const sf::FloatRect &rect2);
@@ -30,8 +30,12 @@ int main() {
 	// Vector of boxes
 	std::vector<sf::RectangleShape> boxes;
 	sf::Vector2f boxSize(100, 100);
+	int initBoxFlag = false;
 	// Initialize all the boxes
-	initBoxes(boxes, 10, boxSize, circleBounds);
+	while (!initBoxFlag) {
+		initBoxFlag = initBoxes(boxes, 10, boxSize, circleBounds);
+	}
+	initBoxFlag = false;
 
 	// Bar for the bottom of the screen
 	sf::Vector2f barSize(250, 20);
@@ -76,7 +80,10 @@ int main() {
 				circle.setPosition(window.getSize().x / 2.0f - circle.getRadius(), window.getSize().y / 2.0f);
 				circleVelocity = sf::Vector2f(0.1, -0.1);
 				bar.setPosition(window.getSize().x / 2.0f - bar.getSize().x / 2.0f, window.getSize().y - 50.f);
-				initBoxes(boxes, 10, boxSize, circleBounds);
+				while (!initBoxFlag) {
+					initBoxFlag = initBoxes(boxes, 10, boxSize, circleBounds);
+				}
+				initBoxFlag = false;
 				// window.close();
 				// sf::RenderWindow window(sf::VideoMode(1100, 800), "Breakout");
 			}
@@ -156,8 +163,11 @@ void gameOverText(sf::Text &gameOverText, sf::Font &font) {
 }
 
 // TODO return int ; do max retries counter and if it doesnt work in max retries then just run initBoxes() above again
-std::vector<sf::RectangleShape> initBoxes(std::vector<sf::RectangleShape> &boxes, int boxNum, sf::Vector2f boxSize, sf::FloatRect circleBounds) {
+int initBoxes(std::vector<sf::RectangleShape> &boxes, int boxNum, sf::Vector2f boxSize, sf::FloatRect circleBounds) {
 	boxes.clear();
+
+	int counter = 0;
+	int finishedFlag = false;
 
 	std::random_device rd;														   // Non-deterministic random device
 	std::mt19937 gen(rd());														   // Seed the Mersenne Twister with the random device
@@ -165,7 +175,7 @@ std::vector<sf::RectangleShape> initBoxes(std::vector<sf::RectangleShape> &boxes
 	std::uniform_int_distribution<> yDist(0, 400 - static_cast<int>(boxSize.y));   // Distribution for y position
 
 	// Random position of box
-	while (boxes.size() < boxNum) {
+	while (boxes.size() < boxNum && counter < 100) {
 		sf::RectangleShape box(boxSize);
 		box.setFillColor(sf::Color::Red);
 
@@ -188,9 +198,14 @@ std::vector<sf::RectangleShape> initBoxes(std::vector<sf::RectangleShape> &boxes
 		// If no overlap, add the box to the list
 		if (!overlaps) {
 			boxes.push_back(box);
+		} else {
+			counter = counter + 1;
 		}
 	}
-	return boxes;
+	if (boxes.size() == boxNum) {
+		finishedFlag = true;
+	}
+	return finishedFlag;
 }
 
 void moveBar(sf::RectangleShape &bar, sf::Vector2i mousePosition, sf::Vector2u windowSize) {
